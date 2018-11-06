@@ -20,7 +20,7 @@
 %%====================================================================
 
 start_link() ->
-    supervisor:start_link({local, ?SERVER}, ?MODULE, []).
+  supervisor:start_link({local, ?SERVER}, ?MODULE, []).
 
 %%====================================================================
 %% Supervisor callbacks
@@ -31,7 +31,16 @@ start_link() ->
 %% Before OTP 18 tuples must be used to specify a child. e.g.
 %% Child :: {Id,StartFunc,Restart,Shutdown,Type,Modules}
 init([]) ->
-    {ok, {{one_for_all, 0, 1}, []}}.
+  ToDoListMainServer = #{id => to_do_list_main_server,       % mandatory
+                         start => {to_do_list_main_server, start_link, []},      % mandatory
+                         restart => permanent,   % optional
+                         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+                         shutdown => infinity, % optional %%%% IS THIS RIGHT %%%%%
+                         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+                         type => worker,       % optional
+                         modules => to_do_list_main_server},   % optional
+
+  {ok, {{one_for_all, 0, 1}, []}}.
 
 %%====================================================================
 %% Internal functions
