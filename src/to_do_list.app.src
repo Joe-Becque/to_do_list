@@ -5,7 +5,10 @@
   {mod, {to_do_list_app, []}},
   {applications,
    [kernel,
-    stdlib
+    stdlib,
+    ranch,
+    cowlib,
+    cowboy
    ]},
   {env,[]},
   {modules, []},
