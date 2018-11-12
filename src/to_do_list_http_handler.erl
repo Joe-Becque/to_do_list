@@ -21,6 +21,14 @@
   handle_post/1,
   to_string/1]).
 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% more than one word in the title and
+
+%% timedate formatting
+
+%% urgent - more user friendly
+
+
 %%====================================================================
 %% API
 %%====================================================================
@@ -57,7 +65,6 @@ handle_get(Req) ->
   end.
 
 handle_post(Req) ->
-  io:format("body: ~p~n", [cowboy_req:body(Req)]),
   {ok, Request, Req2} = cowboy_req:body(Req),
   io:format("1 ~n"),
   io:format("Request: ~p~n", [Request]),
@@ -104,7 +111,7 @@ match_delete("=Delete", Acc) ->
 match_delete([H|T], Acc) -> match_delete(T, [H|Acc]).
 
 match_edit("=edit", Acc, Out) ->
-  io:format("reference"),
+  io:format("reference ~n"),
   io:format("edit_details: ~p~n", [lists:keyfind(edit_details, 1, Out)]),
   io:format("Acc: ~p~n", [lists:reverse(Acc)]),
   case {lists:keyfind(edit_details, 1, Out), lists:reverse(Acc)} of
@@ -156,16 +163,15 @@ match_add([H|T], Acc, Out) ->
   match_add(T, [H|Acc], Out).
 
 %% returns html code for the body of the page as a string
-html_state(ToDoList) -> html_state(ToDoList, "").
+html_state(ToDoList) -> html_state(ToDoList, "", "", "").
 
-html_state([], Acc) ->
-  make_page(Acc);
-html_state([{Ref, {Title, Details, Urgent, TimeDate}} | T], Acc) ->
+html_state([], AccTop, AccMiddle, AccBottom) ->
+  make_page(AccTop, AccMiddle, AccBottom);
+html_state([{Ref, {Title, Details, Urgent, TimeDate}} | T], AccTop, AccMiddle, AccBottom) ->
   io:format("{Ref, {Title, Details, Urgent, TimeDate}}: ~p~n", [{Ref, {Title, Details, Urgent, TimeDate}}]),
   %html code with one to_do item
-  ToDoItem = html_item(Ref, Title, Details, Urgent, TimeDate),
-  html_state(T, [ToDoItem|Acc]).
-
+  {Top, Middle, Bottom} = html_item(Ref, Title, Details, Urgent, TimeDate),
+  html_state(T, [Top|AccTop], [Middle|AccMiddle], [Bottom|AccBottom]).
 
 reply(Body, Req) when is_binary(Body)->
   reply(binary_to_list(Body), Req);
@@ -176,60 +182,9 @@ reply(Body, Req) ->
   {ok, Req2}.
 
 html_item(Ref, Title, Details, Urgent, TimeDate) ->
-  "<tr>
-    <td>"++to_string(Title)++"</td>
-    <td>"++to_string(Details)++"</td>
-    <td>"++to_string(TimeDate)++"</td>
-    <td>"++to_string(Urgent)++"</td>
-    <td>
-    <form action=\"\" method=\"post\">
-    <input type=\"submit\" name=\"delete"++to_string(Ref)++"\" value=\"Delete\">
-    </form>
-    </td>
-
-    <td>
-    <!-- Trigger/Open The Modal -->
-    <button id=\"myBtn\">Open Modal</button>
-
-    <!-- The Modal -->
-    <div id=\"myModal\" class=\"modal\">
-
-    <!-- Modal content -->
-    <div class=\"modal-content\">
-    <span class=\"close\">&times;</span>
-    <form action=\"\" method=\"post\">
-        <fieldset>
-            Edit Title:<br>
-            <input type=\"text\" name=\"edit_title\" value=\""++to_string(Title)++"\">
-            <br><br>
-            Edit Details:<br>
-            <input type=\"text\" name=\"edit_details\" value=\""++to_string(Details)++"\">
-            Urgent?:
-            <input type=\"checkbox\" name=\"urgent\">
-            <br><br>
-            <input type=\"submit\" name=\"reference"++to_string(Ref)++"\" value=\"edit\">
-        </fieldset>
-    </form>
-  </div>
-
-</div>
-    </td>
-  </tr>
-  ".
-
-make_page(Acc) ->
-  "<!DOCTYPE html>
-    <html>
-    <body>
-
-    <style>
-    table, th, td {
-    text-align: left;
-    color: black;
-    background-color: gray;
-    }
-    /* The Modal (background) */
-.modal {
+  io:format("Title: ~p~n", [Title]),
+  Top = "    /* The Modal (background) */
+    .modal"++to_string(Ref)++" {
     display: none; /* Hidden by default */
     position: fixed; /* Stay in place */
     z-index: 1; /* Sit on top */
@@ -244,7 +199,7 @@ make_page(Acc) ->
 }
 
 /* Modal Content */
-.modal-content {
+.modal-content"++to_string(Ref)++" {
     background-color: #fefefe;
     margin: auto;
     padding: 20px;
@@ -253,20 +208,91 @@ make_page(Acc) ->
 }
 
 /* The Close Button */
-.close {
+.close"++to_string(Ref)++" {
     color: #aaaaaa;
     float: right;
     font-size: 28px;
     font-weight: bold;
 }
 
-.close:hover,
-.close:focus {
+.close"++to_string(Ref)++":hover,
+.close"++to_string(Ref)++":focus {
     color: #000;
     text-decoration: none;
     cursor: pointer;
+}",
+  Middle =   "<tr>
+    <td>"++Title++"</td>
+    <td>"++Details++"</td>
+    <td>"++to_string(TimeDate)++"</td>
+    <td>"++to_string(Urgent)++"</td>
+    <td>
+    <form action=\"\" method=\"post\">
+    <input type=\"submit\" name=\"delete"++to_string(Ref)++"\" value=\"Delete\">
+    </form>
+    </td>
+
+    <td>
+    <!-- Trigger/Open The Modal -->
+    <button id=\"myBtn"++to_string(Ref)++"\">Edit</button>
+
+    <!-- The Modal -->
+    <div id=\"myModal"++to_string(Ref)++"\" class=\"modal"++to_string(Ref)++"\">
+
+    <!-- Modal content -->
+    <div class=\"modal-content"++to_string(Ref)++"\">
+    <span class=\"close"++to_string(Ref)++"\">&times;</span>
+    <form action=\"\" method=\"post\">
+        <fieldset>
+            Edit Title:<br>
+            <input type=\"text\" name=\"edit_title\" value=\"\">
+            <br><br>
+            Edit Details:<br>
+            <input type=\"text\" name=\"edit_details\" value=\""++to_string(Details)++"\">
+            Urgent?:
+            <input type=\"checkbox\" name=\"urgent\">
+            <br><br>
+            <input type=\"submit\" name=\"reference"++to_string(Ref)++"\" value=\"edit\">
+        </fieldset>
+    </form>
+    </div>
+    </div>
+    </td>
+  </tr>
+  ",
+  Bottom = "// Get the modal
+var modal"++to_string(Ref)++" = document.getElementById(\"myModal"++to_string(Ref)++"\");
+
+// Get the button that opens the modal
+var btn"++to_string(Ref)++" = document.getElementById(\"myBtn"++to_string(Ref)++"\");
+
+// Get the <span> element that closes the modal
+var span"++to_string(Ref)++" = document.getElementsByClassName(\"close"++to_string(Ref)++"\")[0];
+
+// When the user clicks the button, open the modal
+btn"++to_string(Ref)++".onclick = function() {
+    modal"++to_string(Ref)++".style.display = \"block\";
 }
-</style>
+
+// When the user clicks on <span> (x), close the modal
+span"++to_string(Ref)++".onclick = function() {
+    modal"++to_string(Ref)++".style.display = \"none\";
+}
+  ",
+  {Top, Middle, Bottom}.
+
+make_page(Top, Middle, Bottom) ->
+  "<!DOCTYPE html>
+    <html>
+    <body>
+
+    <style>
+    table, th, td {
+    text-align: left;
+    color: black;
+    background-color: gray;
+    }
+    "++Top++"
     </style>
 
     <h2>To Do List</h2>
@@ -297,34 +323,12 @@ make_page(Acc) ->
        <th>Time Set</th>
        <th>Urgent?</th>
     </tr>
-    "++Acc++"
+    "++Middle++"
   </table>
   <script>
-// Get the modal
-var modal = document.getElementById('myModal');
 
-// Get the button that opens the modal
-var btn = document.getElementById(\"myBtn\");
+"++Bottom++"
 
-// Get the <span> element that closes the modal
-var span = document.getElementsByClassName(\"close\")[0];
-
-// When the user clicks the button, open the modal
-btn.onclick = function() {
-    modal.style.display = \"block\";
-}
-
-// When the user clicks on <span> (x), close the modal
-span.onclick = function() {
-    modal.style.display = \"none\";
-}
-
-// When the user clicks anywhere outside of the modal, close it
-window.onclick = function(event) {
-    if (event.target == modal) {
-        modal.style.display = \"none\";
-    }
-}
 </script>
 
   </body>
