@@ -28,6 +28,13 @@
   terminate/2,
   code_change/3]).
 
+%% handle functions
+-export([handle_add/6,
+  handle_edit/6,
+  handle_delete/2,
+  handle_new_ref/1,
+  handle_delete_all/1]).
+
 -define(SERVER, ?MODULE).
 
 -record(state, {to_do,        %% ets table {ref, [Title, Details, Urgency, TimeDateSet]}
@@ -65,37 +72,16 @@ delete_all() ->
 init([]) ->
   {ok, #state{to_do = ets:new(table, []), references = [0]}}.
 
-handle_call({add, Ref, Title, Details, Urgency, TimeDate}, _From, State = #state{to_do = ToDo, references = Refs}) ->
-  ets:insert(ToDo, {Ref, {Title, Details, Urgency, TimeDate}}),
-  ToDoList = ets:match_object(ToDo, {'$0', '$1'}),
-  {reply, {ok, ToDoList}, State};
+handle_call({add, Ref, Title, Details, Urgency, TimeDate}, _From, State) ->
+  handle_add(Ref, Title, Details, Urgency, TimeDate, State);
 handle_call({edit, Ref, Title, Details, Urgency, TimeDate}, _From, State = #state{to_do = ToDo}) ->
-  case ets:lookup(ToDo, Ref) of
-            [] ->
-              no_ref;
-            [{Ref, _Info}] ->
-              ets:insert(ToDo, {Ref, {Title, Details, Urgency, TimeDate}}),
-              ok
-  end,
-  ToDoList = ets:match_object(ToDo, {'$0', '$1'}),
-  {reply, {ok, ToDoList}, State};
-handle_call({delete, Ref}, _From, State = #state{to_do = ToDo}) ->
-  ToDoList1 = ets:match_object(ToDo, {'$0', '$1'}),
-  io:format("ToDoList1: ~p~nRef: ~p~n", [ToDoList1, Ref]),
-  ets:delete(ToDo, Ref),
-  ToDoList = ets:match_object(ToDo, {'$0', '$1'}),
-  io:format("ToDoList: ~p~n", [ToDoList]),
-  {reply, {ok, ToDoList}, State};
-handle_call({new_ref}, _From, _State = #state{to_do = ToDo, references = Refs}) ->
-  NewRef = lists:max(Refs)+1,
-  NewRefs = lists:append(Refs, [NewRef]),
-  NewState = #state{to_do = ToDo, references = NewRefs},
-  {reply, NewRef, NewState};
-handle_call({delete_all}, _From, State = #state{to_do = ToDo}) ->
-  ets:delete(ToDo),
-  NewToDo = ets:new(table, []),
-  #state{to_do = NewToDo},
-  {reply, {ok, NewToDo}, State}.
+  handle_edit(Ref, Title, Details, Urgency, TimeDate, State);
+handle_call({delete, Ref}, _From, State) ->
+  handle_delete(Ref, State);
+handle_call({new_ref}, _From, State = #state{to_do = ToDo, references = Refs}) ->
+  handle_new_ref(State);
+handle_call({delete_all}, _From, State) ->
+  handle_delete_all(State).
 
 handle_cast(_Request, State) ->
   {noreply, State}.
@@ -109,9 +95,42 @@ terminate(_Reason, _State) ->
 code_change(_OldVsn, State, _Extra) ->
   {ok, State}.
 
+%%%===================================================================
+%%% handle functions
+%%%===================================================================
 
+handle_add(Ref, Title, Details, Urgency, TimeDate, State = #state{to_do = ToDo, references = _Refs}) ->
+  ets:insert(ToDo, {Ref, {Title, Details, Urgency, TimeDate}}),
+  ToDoList = ets:match_object(ToDo, {'$0', '$1'}),
+  {reply, {ok, ToDoList}, State}.
 
+handle_edit(Ref, Title, Details, Urgency, TimeDate, State = #state{to_do = ToDo}) ->
+  case ets:lookup(ToDo, Ref) of
+    [] ->
+      no_ref;
+    [{Ref, _Info}] ->
+      ets:insert(ToDo, {Ref, {Title, Details, Urgency, TimeDate}}),
+      ok
+  end,
+  ToDoList = ets:match_object(ToDo, {'$0', '$1'}),
+  {reply, {ok, ToDoList}, State}.
 
+handle_delete(Ref, State = #state{to_do = ToDo}) ->
+  ets:delete(ToDo, Ref),
+  ToDoList = ets:match_object(ToDo, {'$0', '$1'}),
+  {reply, {ok, ToDoList}, State}.
+
+handle_new_ref(_State = #state{to_do = ToDo, references = Refs}) ->
+  NewRef = lists:max(Refs)+1,
+  NewRefs = lists:append(Refs, [NewRef]),
+  NewState = #state{to_do = ToDo, references = NewRefs},
+  {reply, NewRef, NewState}.
+
+handle_delete_all(State = #state{to_do = ToDo}) ->
+  ets:delete(ToDo),
+  NewToDo = ets:new(table, []),
+  #state{to_do = NewToDo},
+  {reply, {ok, NewToDo}, State}.
 
 
 

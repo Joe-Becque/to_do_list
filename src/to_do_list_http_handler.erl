@@ -11,6 +11,7 @@
 
 -define(HOME, file:read_file("sites/home.html")).
 -record(ref, {references}).
+
 %% API
 -export([init/3,
   handle/2,
@@ -19,15 +20,24 @@
 %% internal functions
 -export([handle_get/1,
   handle_post/1,
+  match/1,
+  match_add/3,
+  match_edit/3,
+  match_delete/1,
+  match_delete/2]).
+
+%% formatting
+-export([format_text/1,
+  format_text/3,
+  format_time/1,
+  decode/1,
   to_string/1]).
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%% more than one word in the title and
-
-%% timedate formatting
-
-%% urgent - more user friendly
-
+%% html functions
+-export([html_state/1,
+  html_state/4,
+  html_item/5,
+  make_page/3]).
 
 %%====================================================================
 %% API
@@ -55,40 +65,27 @@ terminate(_Reason, _Req, _State) ->
 handle_get(Req) ->
   case cowboy_req:qs(Req) of
     {<<>>, Req2} ->
-      io:format("GET HOME: ~n"),
       {ok, Home} = ?HOME,
       reply(Home, Req2);
-    Other ->
-      io:format("Other get: ~p~n", [Other]),
-      io:format("body: ~p~n", [cowboy_req:body(Req)]),
+    _Other ->
       {ok, Req}
   end.
 
 handle_post(Req) ->
   {ok, Request, Req2} = cowboy_req:body(Req),
-  io:format("1 ~n"),
-  io:format("Request: ~p~n", [Request]),
   Body = case match(binary_to_list(Request)) of
            [{new_title, Title}, {details, Details}, {urgent, Urgent}] ->
              Ref = to_do_list_server:new_ref(),
              TimeDate = format_time(calendar:local_time()),
-             io:format("new stuff: ~p~n", [{Ref, Title, Details, Urgent, TimeDate}]),
              {ok, ToDoList} =  to_do_list_server:add(Ref, Title, Details, Urgent, TimeDate),
-             io:format("POST: ~p~n", [ToDoList]),
              html_state(ToDoList);
            [{edit_title, Title}, {edit_details, Details}, {edit_urgent, Urgent}, {reference, Ref}] ->
              TimeDate = format_time(calendar:local_time()),
-             io:format("edit stuff: ~p~n", [{Ref, Title, Details, Urgent, TimeDate}]),
              {ok, ToDoList} = to_do_list_server:edit(Ref, Title, Details, Urgent, TimeDate),
-             %% new page to display
              html_state(ToDoList);
            {delete, Ref} ->
              {ok, ToDoList} = to_do_list_server:delete(Ref),
-             io:format("DELETE: ~p~n", [Ref]),
-             io:format("ToDoList: ~p~n", [ToDoList]),
-             html_state(ToDoList);
-           Other ->
-             io:format("NOT MATCHED: ~p~n", [Other])
+             html_state(ToDoList)
          end,
   reply(Body, Req2).
 
@@ -126,7 +123,6 @@ match_edit("&urgent="++Rest, Acc, Out) ->
   match_edit(Rest, "", NewOut);
 match_edit("&edit_details="++Rest, Acc, Out) ->
   NewTitle = lists:reverse(Acc),
-  io:format("NewTitle: ~p~n", [NewTitle]),
   NewOut = lists:keystore(edit_title, 1, Out, {edit_title, format_text(NewTitle)}),
   match_edit(Rest, "", NewOut);
 match_edit([H|T], Acc, Out) ->
@@ -206,7 +202,7 @@ to_string(In) ->
   lists:flatten(R).
 
 %%====================================================================
-%% html code
+%% html functions
 %%====================================================================
 
 %% returns html code for the body of the page as a string
