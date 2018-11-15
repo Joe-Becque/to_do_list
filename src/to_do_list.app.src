@@ -1,5 +1,5 @@
 {application, to_do_list,
- [{description, "An OTP application"},
+ [{description, "A to-do list supporting adding, editing and deleting items with a title, a description and the option to mark as urgent."},
   {vsn, "0.1.0"},
   {registered, []},
   {mod, {to_do_list_app, []}},

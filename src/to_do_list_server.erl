@@ -1,39 +1,30 @@
-%%%-------------------------------------------------------------------
-%%% @author joe
-%%% @copyright (C) 2018, <COMPANY>
-%%% @doc
-%%%
-%%% @end
-%%% Created : 07. Nov 2018 19:58
-%%%-------------------------------------------------------------------
 -module(to_do_list_server).
--author("joe").
 
 -behaviour(gen_server).
 
 %% API
 -export([start_link/0,
-  stop/0,
-  add/5,
-  delete/1,
-  new_ref/0,
-  edit/5,
-  delete_all/0]).
+         stop/0,
+         add/5,
+         delete/1,
+         new_ref/0,
+         edit/5,
+         delete_all/0]).
 
 %% gen_server callbacks
 -export([init/1,
-  handle_call/3,
-  handle_cast/2,
-  handle_info/2,
-  terminate/2,
-  code_change/3]).
+         handle_call/3,
+         handle_cast/2,
+         handle_info/2,
+         terminate/2,
+         code_change/3]).
 
 %% handle functions
 -export([handle_add/6,
-  handle_edit/6,
-  handle_delete/2,
-  handle_new_ref/1,
-  handle_delete_all/1]).
+         handle_edit/6,
+         handle_delete/2,
+         handle_new_ref/1,
+         handle_delete_all/1]).
 
 -define(SERVER, ?MODULE).
 
@@ -74,11 +65,11 @@ init([]) ->
 
 handle_call({add, Ref, Title, Details, Urgency, TimeDate}, _From, State) ->
   handle_add(Ref, Title, Details, Urgency, TimeDate, State);
-handle_call({edit, Ref, Title, Details, Urgency, TimeDate}, _From, State = #state{to_do = ToDo}) ->
+handle_call({edit, Ref, Title, Details, Urgency, TimeDate}, _From, State) ->
   handle_edit(Ref, Title, Details, Urgency, TimeDate, State);
 handle_call({delete, Ref}, _From, State) ->
   handle_delete(Ref, State);
-handle_call({new_ref}, _From, State = #state{to_do = ToDo, references = Refs}) ->
+handle_call({new_ref}, _From, State) ->
   handle_new_ref(State);
 handle_call({delete_all}, _From, State) ->
   handle_delete_all(State).
@@ -131,14 +122,3 @@ handle_delete_all(State = #state{to_do = ToDo}) ->
   NewToDo = ets:new(table, []),
   #state{to_do = NewToDo},
   {reply, {ok, NewToDo}, State}.
-
-
-
-
-
-
-
-
-
-
-

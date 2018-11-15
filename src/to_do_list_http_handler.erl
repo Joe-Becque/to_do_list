@@ -1,37 +1,27 @@
-%%%-------------------------------------------------------------------
-%%% @author joe
-%%% @copyright (C) 2018, <COMPANY>
-%%% @doc
-%%%
-%%% @end
-%%% Created : 08. Nov 2018 20:03
-%%%-------------------------------------------------------------------
 -module(to_do_list_http_handler).
--author("joe").
 
 -define(HOME, file:read_file("sites/home.html")).
--record(ref, {references}).
 
 %% API
 -export([init/3,
-  handle/2,
-  terminate/3]).
+         handle/2,
+         terminate/3]).
 
 %% internal functions
 -export([handle_get/1,
-  handle_post/1,
-  match/1,
-  match_add/3,
-  match_edit/3,
-  match_delete/1,
-  match_delete/2]).
+         handle_post/1,
+         match/1,
+         match_add/3,
+         match_edit/3,
+         match_delete/1,
+         match_delete/2]).
 
 %% formatting
 -export([format_text/1,
-  format_text/3,
-  format_time/1,
-  decode/1,
-  to_string/1]).
+         format_text/3,
+         format_time/1,
+         decode/1,
+         to_string/1]).
 
 %% html functions
 -export([html_state/1,
@@ -63,13 +53,8 @@ terminate(_Reason, _Req, _State) ->
 %%====================================================================
 
 handle_get(Req) ->
-  case cowboy_req:qs(Req) of
-    {<<>>, Req2} ->
-      {ok, Home} = ?HOME,
-      reply(Home, Req2);
-    _Other ->
-      {ok, Req}
-  end.
+  {ok, Home} = ?HOME,
+  reply(Home, Req).
 
 handle_post(Req) ->
   {ok, Request, Req2} = cowboy_req:body(Req),
@@ -106,14 +91,14 @@ match_edit("=Edit", Acc, Out) ->
   case {lists:keyfind(edit_details, 1, Out), lists:reverse(Acc)} of
     {{edit_details, undefined}, Details} ->
       lists:keystore(edit_details, 1, Out, {edit_details, format_text(Details)});
-    {{edit_details, Details}, Ref} ->
+    {{edit_details, _Details}, Ref} ->
       lists:keystore(reference, 1, Out, {reference, list_to_integer(Ref)})
   end;
 match_edit("&reference"++Rest, Acc, Out) ->
   NewOut = case {lists:keyfind(edit_details, 1, Out), lists:reverse(Acc)} of
     {{edit_details, undefined}, Details} ->
       lists:keystore(edit_details, 1, Out, {edit_details, format_text(Details)});
-    {{edit_details, Details}, "on"} ->
+    {{edit_details, _Details}, "on"} ->
       lists:keystore(edit_urgent, 1, Out, {edit_urgent, "URGENT"})
            end,
   match_edit(Rest, "", NewOut);
@@ -132,7 +117,7 @@ match_add("", Acc, Out) ->
   case {lists:keyfind(details, 1, Out), lists:reverse(Acc)} of
     {{details, undefined}, Details} ->
       lists:keystore(details, 1, Out, {details, format_text(Details)});
-    {{details, Details}, "on"} ->
+    {{details, _Details}, "on"} ->
       lists:keystore(urgent, 1, Out, {urgent, "URGENT"})
   end;
 match_add("&urgent="++Rest, Acc, Out) ->
