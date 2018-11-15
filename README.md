@@ -1,9 +1,16 @@
 to_do_list
 =====
 
-A to do list supporting adding items with a title and a description with the option to mark as urgent.
+A to-do list supporting adding, editing and deleting items with a title, a description and the option to mark as urgent.
 
-Additionally it supports editing and deleting existing items.
+Made for personal use and to experiment making an OTP application using HTTP REST and creating a UI using html.
+
+Requirements
+-----
+
+Erlang 18
+
+Rebar3 3.7.0-rc2
 
 Build
 -----
