@@ -1,8 +1,3 @@
-%%%-------------------------------------------------------------------
-%% @doc to_do_list top level supervisor.
-%% @end
-%%%-------------------------------------------------------------------
-
 -module(to_do_list_sup).
 
 -behaviour(supervisor).
@@ -20,7 +15,7 @@
 %%====================================================================
 
 start_link() ->
-    supervisor:start_link({local, ?SERVER}, ?MODULE, []).
+  supervisor:start_link({local, ?SERVER}, ?MODULE, []).
 
 %%====================================================================
 %% Supervisor callbacks
@@ -31,8 +26,17 @@ start_link() ->
 %% Before OTP 18 tuples must be used to specify a child. e.g.
 %% Child :: {Id,StartFunc,Restart,Shutdown,Type,Modules}
 init([]) ->
-    {ok, {{one_for_all, 0, 1}, []}}.
+  RestartStrategy = one_for_one,
+  MaxRestarts = 4,
+  MaxSecondsBetweenRestarts = 60,
 
-%%====================================================================
-%% Internal functions
-%%====================================================================
+  SupFlags = #{strategy => RestartStrategy, intensity => MaxRestarts, period => MaxSecondsBetweenRestarts},
+
+  ToDoListServer = #{id => to_do_list_server,
+                      start => {to_do_list_server, start_link, []},
+                    restart => permanent,
+                   shutdown => 2000,
+                       type => worker,
+                    modules => [to_do_list_server]},
+
+  {ok, {SupFlags, [ToDoListServer]}}.
